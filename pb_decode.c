@@ -21,6 +21,7 @@
  * Declarations internal to this file *
  **************************************/
 
+static bool checkreturn buf_read_P(pb_istream_t *stream, pb_byte_t *buf, size_t count);
 static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count);
 static bool checkreturn pb_decode_varint32_eof(pb_istream_t *stream, uint32_t *dest, bool *eof);
 static bool checkreturn read_raw_value(pb_istream_t *stream, pb_wire_type_t wire_type, pb_byte_t *buf, size_t *size);
@@ -64,6 +65,19 @@ typedef struct {
 /*******************************
  * pb_istream_t implementation *
  *******************************/
+
+static bool checkreturn buf_read_P(pb_istream_t *stream, pb_byte_t *buf, size_t count)
+{
+    const pb_byte_t *source = (const pb_byte_t*) PB_PROGMEM_READSIZE(stream->state);
+    stream->state = (pb_byte_t*)stream->state + count;
+    
+    if (buf != NULL)
+    {
+        memcpy(buf, source, count * sizeof(pb_byte_t));
+    }
+    
+    return true;
+}
 
 static bool checkreturn buf_read(pb_istream_t *stream, pb_byte_t *buf, size_t count)
 {
@@ -137,6 +151,30 @@ static bool checkreturn pb_readbyte(pb_istream_t *stream, pb_byte_t *buf)
     stream->bytes_left--;
     
     return true;    
+}
+
+pb_istream_t pb_istream_from_buffer_P(const pb_byte_t *buf, size_t msglen)
+{
+    pb_istream_t stream;
+    /* Cast away the const from buf without a compiler error.  We are
+     * careful to use it only in a const manner in the callbacks.
+     */
+    union {
+        void *state;
+        const void *c_state;
+    } state;
+#ifdef PB_BUFFER_ONLY
+    stream.callback = NULL;
+#else
+    stream.callback = &buf_read_P;
+#endif
+    state.c_state = buf;
+    stream.state = state.state;
+    stream.bytes_left = msglen;
+#ifndef PB_NO_ERRMSG
+    stream.errmsg = NULL;
+#endif
+    return stream;
 }
 
 pb_istream_t pb_istream_from_buffer(const pb_byte_t *buf, size_t msglen)
@@ -959,7 +997,7 @@ static bool pb_message_set_to_defaults(pb_field_iter_t *iter)
 
     if (default_values)
     {
-        defstream = pb_istream_from_buffer(default_values, (size_t)-1);
+        defstream = pb_istream_from_buffer_P(default_values, (size_t)-1);
         if (!pb_decode_tag(&defstream, &wire_type, &tag, &eof))
             return false;
     }

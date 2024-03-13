@@ -117,6 +117,16 @@ void pb_release(const pb_msgdesc_t *fields, void *dest_struct);
  * Functions for manipulating streams *
  **************************************/
 
+/* Create an input stream for reading from a PROGMEM buffer.
+ *
+ * msglen should be the actual length of the message, not the full size of
+ * allocated buffer.
+ *
+ * Alternatively, you can use a custom stream that reads directly from e.g.
+ * a file or a network socket.
+ */
+pb_istream_t pb_istream_from_buffer_P(const pb_byte_t *buf, size_t msglen);
+
 /* Create an input stream for reading from a memory buffer.
  *
  * msglen should be the actual length of the message, not the full size of
