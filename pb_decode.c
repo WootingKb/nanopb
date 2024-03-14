@@ -68,7 +68,7 @@ typedef struct {
 
 static bool checkreturn buf_read_P(pb_istream_t *stream, pb_byte_t *buf, size_t count)
 {
-    const pb_byte_t *source = (const pb_byte_t*) PB_PROGMEM_READSIZE(stream->state);
+    const pb_byte_t *source = (const pb_byte_t*) PB_PROGMEM_READBYTE(stream->state);
     stream->state = (pb_byte_t*)stream->state + count;
     
     if (buf != NULL)
